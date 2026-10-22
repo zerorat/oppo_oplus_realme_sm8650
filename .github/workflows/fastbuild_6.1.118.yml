@@ -252,11 +252,14 @@ jobs:
           cd kernel_workspace
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" || ${{ github.event.inputs.ksu_type }} == "bakasu" ]]; then
             echo "正在配置BakaSU（由于SukiSU长期未维护无法正常编译，且BakaSU兼容sukisu管理器，故SukiSU源码仓库已重定向为bakasu）..."
-            curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/refs/heads/main/kernel/setup.sh" | bash -s main
+            # BakaSU 上游自 2026-10-10 (48fa4bb7ec) 起在 susfs_compat.mk 中无条件报错挂起 SUSFS 构建，
+            # 固定到本仓库已验证可用的提交，避免上游变动导致构建失败。
+            BAKASU_COMMIT="3d1185d878a856ea6435799b436b3d3ec510da76"
+            curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/${BAKASU_COMMIT}/kernel/setup.sh" | bash -s "$BAKASU_COMMIT"
             echo 'CONFIG_KSU_FULL_NAME_FORMAT="%TAG_NAME%-%COMMIT_SHA%@cctv18"' >> ./common/arch/arm64/configs/gki_defconfig
             cd ./KernelSU
-            # 生成自定义版本号（基于提交计数）, 失败时使用 114514
-            KSU_VERSION=$(expr $(git rev-list --count main) + 30700 2>/dev/null || echo 114514)
+            # 生成自定义版本号（基于当前检出的提交计数）, 失败时使用 114514
+            KSU_VERSION=$(expr $(git rev-list --count HEAD) + 30700 2>/dev/null || echo 114514)
             # 存储版本号到 GitHub 环境变量
             echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
