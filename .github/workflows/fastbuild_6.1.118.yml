@@ -252,14 +252,13 @@ jobs:
           cd kernel_workspace
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" || ${{ github.event.inputs.ksu_type }} == "bakasu" ]]; then
             echo "正在配置BakaSU（由于SukiSU长期未维护无法正常编译，且BakaSU兼容sukisu管理器，故SukiSU源码仓库已重定向为bakasu）..."
-            # BakaSU 上游自 2026-10-10 (48fa4bb7ec) 起在 susfs_compat.mk 中无条件报错挂起 SUSFS 构建；
-            # 所用 cctv18/susfs4oki 分支已同步最新 KernelSU，故固定上游最新提交并移除该挂起检查。
-            BAKASU_COMMIT="dac2d186406a0d2b0ce3c67cad5a1fa1adbf9f4d"
+            # BakaSU main 自 2026-10-10 (48fa4bb7ec) 起挂起 SUSFS 构建；
+            # 固定到维护者 sync-susfs 分支 (PR #624) 的最新提交，该分支已同步最新 SUSFS，
+            # 并在 6.6 以下内核恢复 fake_state 定义（本项目为 6.1），susfs_compat.mk 亦无挂起检查。
+            BAKASU_COMMIT="10cada74698ccf7eed04d0e38bc7d624e5f54395"
             curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/${BAKASU_COMMIT}/kernel/setup.sh" | bash -s "$BAKASU_COMMIT"
             echo 'CONFIG_KSU_FULL_NAME_FORMAT="%TAG_NAME%-%COMMIT_SHA%@cctv18"' >> ./common/arch/arm64/configs/gki_defconfig
             cd ./KernelSU
-            # 移除上游无条件挂起检查，保留其前方的兼容性探测宏
-            sed -i '/susfs has NOT update with latest KernelSU source/d;/Please wait susfs update/d;/Please wait simonpunk update/d' kernel/tools/susfs_compat.mk
             # 生成自定义版本号（基于当前检出的提交计数）, 失败时使用 114514
             KSU_VERSION=$(expr $(git rev-list --count HEAD) + 30700 2>/dev/null || echo 114514)
             # 存储版本号到 GitHub 环境变量
